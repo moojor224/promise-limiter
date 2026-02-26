@@ -1,25 +1,29 @@
-import type { PromiseAction } from "./types";
+import type { Limiter, PromiseAction } from "./types";
 
 /**
  * Class to limit the number of promises that can be active at once.
  *
  * Useful to prevent network bandwidth overloading
- *
- * Promises don't necessarily resolve in the same order that they are initially called
  */
-export class ConcurrencyLimiter {
+export class ConcurrencyLimiter implements Limiter {
+    /** max number of active promises */
     private concur: number;
-    private interval: number;
+    /** setInterval id */
     private workInterval: number = 0;
+    /** current number of active promises */
     private active = 0;
+    /** unresolved promises */
     private queue: PromiseAction<any>[] = [];
-    constructor(concur: number, interval: number = 0) {
+    /**
+     * @param concur max number of concurrent promises
+     */
+    constructor(concur: number) {
         this.concur = concur;
-        this.interval = interval;
         this.start();
     }
+    /** check the queue for promises to execute */
     private async doWork() {
-        if (this.active > this.concur) return;
+        if (this.active >= this.concur) return;
         const action = this.queue.shift();
         if (action) {
             this.active++;
@@ -28,7 +32,8 @@ export class ConcurrencyLimiter {
         }
     }
     start() {
-        this.workInterval = setInterval(() => this.doWork(), this.interval);
+        clearInterval(this.workInterval);
+        this.workInterval = setInterval(() => this.doWork());
     }
     run<T>(action: PromiseAction<T>): Promise<T> {
         return new Promise<T>((resolve) => {
@@ -38,9 +43,20 @@ export class ConcurrencyLimiter {
             });
         });
     }
+    wait() {
+        return new Promise<void>((resolve) => {
+            setInterval(() => {
+                if (this.queue.length == 0) resolve();
+            });
+        });
+    }
     stop() {
         clearInterval(this.workInterval);
     }
+    /**
+     * update the maximum number of concurrent promises
+     * @param rate max number of concurrent promises
+     */
     setLimit(concur: number) {
         this.concur = concur;
     }

@@ -1,24 +1,25 @@
-import type { PromiseAction } from "./types";
+import type { Limiter, PromiseAction } from "./types";
 
-export class RateLimiter {
+/**
+ * Class to limit the number of promises that are run per second.
+ */
+export class RateLimiter implements Limiter {
     /** ms between promises */
     private rate: number;
-    /** ms interval to check queue for unresolved promises */
-    private interval: number;
+    /** setInterval id */
     private workInterval: number = 0;
+    /** timestamp of last promise execution */
+    private last = 0;
     /** unresolved promises */
     private queue: PromiseAction<any>[] = [];
-    private last = 0;
     /**
-     *
      * @param rate number of promises per second
-     * @param interval ms interval to check queue for unresolved promises
      */
-    constructor(rate: number, interval = 0) {
+    constructor(rate: number) {
         this.rate = 1000 / rate;
-        this.interval = interval;
         this.start();
     }
+    /** check the queue for promises to execute */
     private async doWork() {
         const now = Date.now();
         if (now - this.last > this.rate) {
@@ -30,7 +31,8 @@ export class RateLimiter {
         }
     }
     start() {
-        this.workInterval = setInterval(() => this.doWork(), this.interval);
+        clearInterval(this.workInterval);
+        this.workInterval = setInterval(() => this.doWork());
     }
     run<T>(action: PromiseAction<T>): Promise<T> {
         return new Promise<T>((resolve) => {
@@ -40,7 +42,21 @@ export class RateLimiter {
             });
         });
     }
+    wait() {
+        return new Promise<void>((resolve) => {
+            setInterval(() => {
+                if (this.queue.length == 0) resolve();
+            });
+        });
+    }
     stop() {
         clearInterval(this.workInterval);
+    }
+    /**
+     * update the maximum promise rate per second
+     * @param rate number of promises per second
+     */
+    setRate(rate: number) {
+        this.rate = 1 / rate;
     }
 }
