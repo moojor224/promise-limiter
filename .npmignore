@@ -1,0 +1,4 @@
+*.un~
+*.swp
+.editorconfig
+dist-tests

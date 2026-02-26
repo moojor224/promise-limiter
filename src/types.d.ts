@@ -1,0 +1,1 @@
+export type PromiseAction<T> = () => Promise<T>;
