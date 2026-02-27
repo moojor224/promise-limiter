@@ -1,7 +1,7 @@
 {
     "name": "@moojor224/promise-limiter",
     "private": false,
-    "version": "0.0.0",
+    "version": "1.0.0",
     "description": "Rate and concurrency limiting for promises",
     "main": "dist/index.js",
     "module": "./dist/index.mjs",
