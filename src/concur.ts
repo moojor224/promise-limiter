@@ -8,12 +8,12 @@ import type { Limiter, PromiseAction } from "./types";
 export class ConcurrencyLimiter implements Limiter {
     /** max number of active promises */
     private concur: number;
-    /** setInterval id */
-    private workInterval: number = 0;
     /** current number of active promises */
     private active = 0;
     /** unresolved promises */
     private queue: PromiseAction<any>[] = [];
+    /** whether the limiter should doWork */
+    private isActive = true;
     /**
      * @param concur max number of concurrent promises
      */
@@ -22,25 +22,25 @@ export class ConcurrencyLimiter implements Limiter {
         this.start();
     }
     /** check the queue for promises to execute */
-    private async doWork() {
-        if (this.active >= this.concur) return;
-        const action = this.queue.shift();
-        if (action) {
-            this.active++;
-            await action();
+    private doWork() {
+        if (!this.isActive) return;
+        if (this.active >= this.concur || this.queue.length <= 0) return;
+        this.active++;
+        const queueItem = this.queue.shift()!;
+        queueItem().finally(() => {
             this.active--;
-        }
+            queueMicrotask(() => this.doWork());
+        });
     }
     start() {
-        clearInterval(this.workInterval);
-        this.workInterval = setInterval(() => this.doWork());
+        this.isActive = true;
     }
     run<T>(action: PromiseAction<T>): Promise<T> {
         return new Promise<T>((resolve) => {
-            this.queue.push(async function () {
-                const result = await action();
-                resolve(result);
+            this.queue.push(function () {
+                return action().then(resolve);
             });
+            this.doWork();
         });
     }
     wait() {
@@ -51,7 +51,7 @@ export class ConcurrencyLimiter implements Limiter {
         });
     }
     stop() {
-        clearInterval(this.workInterval);
+        this.isActive = false;
     }
     /**
      * update the maximum number of concurrent promises
