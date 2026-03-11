@@ -7,11 +7,10 @@ settings:
 importers:
 
   .:
-    dependencies:
+    devDependencies:
       '@types/node':
         specifier: ^25.4.0
         version: 25.4.0
-    devDependencies:
       p-limit:
         specifier: ^7.3.0
         version: 7.3.0
