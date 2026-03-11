@@ -43,24 +43,30 @@ async function test(limit: Limiter, expectedLength: number) {
 async function run() {
     const as: number[] = [];
     const bs: number[] = [];
+    const cs: number[] = [];
     for (let i = 0; i < 10; i++) {
         // run 10 rounds of tests
         // run 5 limiters at the same time
-        let a = await Promise.all(new Array(5).fill(0).map((e) => test(new ConcurrencyLimiter(taskConcur), 3000)));
-        let b = await Promise.all(new Array(5).fill(0).map((e) => testPLimit(pLimit(taskConcur), 3000)));
+        let a = await Promise.all(new Array(taskConcur).fill(0).map((e) => test(new ConcurrencyLimiter(taskConcur, true), 3000)));
+        let b = await Promise.all(new Array(taskConcur).fill(0).map((e) => test(new ConcurrencyLimiter(taskConcur), 3000)));
+        let c = await Promise.all(new Array(taskConcur).fill(0).map((e) => testPLimit(pLimit(taskConcur), 3000)));
 
         // await test(new ConcurrencyRateLimiter(2, 1), 9000);
         let aavg = a.reduce((a, b) => a + b, 0) / a.length;
         let bavg = b.reduce((a, b) => a + b, 0) / b.length;
-        console.log([aavg, bavg], (aavg - bavg).toFixed(2));
+        let cavg = c.reduce((a, b) => a + b, 0) / c.length;
+        console.log([aavg, bavg, cavg], (bavg - cavg).toFixed(2));
         as.push(aavg);
         bs.push(bavg);
+        cs.push(cavg);
     }
     const tas = as.reduce((a, b) => a + b, 0) / as.length;
     const tbs = bs.reduce((a, b) => a + b, 0) / bs.length;
+    const tcs = cs.reduce((a, b) => a + b, 0) / cs.length;
     console.log(tas.toFixed(2));
     console.log(tbs.toFixed(2));
-    console.log((tas - tbs).toFixed(2));
+    console.log(tcs.toFixed(2));
+    console.log((tbs - tcs).toFixed(2));
     throw new Error();
 }
 run();
