@@ -14,22 +14,27 @@ export class ConcurrencyLimiter implements Limiter {
     private queue: PromiseAction<any>[] = [];
     /** whether the limiter should doWork */
     private isActive = true;
+    private useTimeouts = false;
     /**
      * @param concur max number of concurrent promises
+     * @param useTimeouts use `setTimeout` instead of `queueMicrotask` to run next promise when one finishes.\
+     * set to true if data needs to be shown in the DOM when a promise finishes
      */
-    constructor(concur: number) {
+    constructor(concur: number, useTimeouts: boolean = false) {
         this.concur = concur;
+        this.useTimeouts = useTimeouts;
         this.start();
     }
     /** check the queue for promises to execute */
-    private doWork() {
+    private async doWork() {
         if (!this.isActive) return;
-        if (this.active >= this.concur || this.queue.length <= 0) return;
+        if ((this.active >= this.concur && this.concur > 0) || this.queue.length <= 0) return;
         this.active++;
         const queueItem = this.queue.shift()!;
         queueItem().finally(() => {
             this.active--;
-            queueMicrotask(() => this.doWork());
+            if (this.useTimeouts) setTimeout(() => this.doWork());
+            else queueMicrotask(() => this.doWork());
         });
     }
     start() {
@@ -45,8 +50,11 @@ export class ConcurrencyLimiter implements Limiter {
     }
     wait() {
         return new Promise<void>((resolve) => {
-            setInterval(() => {
-                if (this.queue.length == 0) resolve();
+            let i = setInterval(() => {
+                if (this.queue.length == 0) {
+                    clearInterval(i);
+                    resolve();
+                }
             });
         });
     }
