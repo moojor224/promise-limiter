@@ -1,9 +1,9 @@
 name: Publish Package
 
 on:
-  push:
-    tags:
-      - 'v*'
+  release:
+    types: [created]
+  workflow_dispatch:
 
 permissions:
   id-token: write # Required for OIDC
@@ -20,11 +20,6 @@ jobs:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Setup PNPM
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
-
-      - name: Build and Publish
-        run: pnpm i
-        run: npm publish
+      - run: npm i -g pnpm
+      - run: pnpm i
+      - run: npm publish
