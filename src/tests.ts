@@ -1,4 +1,3 @@
-import process from "node:process";
 import pLimit, { type LimitFunction } from "p-limit";
 import { ConcurrencyLimiter } from "./concur";
 import type { Limiter } from "./types";
@@ -62,6 +61,6 @@ async function run() {
     console.log(tas.toFixed(2));
     console.log(tbs.toFixed(2));
     console.log((tas - tbs).toFixed(2));
-    process.exit(0);
+    throw new Error();
 }
 run();
