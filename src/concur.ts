@@ -35,8 +35,8 @@ export class ConcurrencyLimiter implements Limiter {
     start() {
         this.isActive = true;
     }
-    run<T>(action: PromiseAction<T>): Promise<T> {
-        return new Promise<T>((resolve) => {
+    async run<T>(action: PromiseAction<T>): Promise<T> {
+        return await new Promise<T>((resolve) => {
             this.queue.push(function () {
                 return action().then(resolve);
             });
